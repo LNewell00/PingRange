@@ -1,87 +1,54 @@
+import java.io.IOException;
 import java.net.*;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Scanner;
 
 public class Main {
+    public static void main(String[] args) throws IOException {
+        Main main = new Main();
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+        int[] startOctet = {192,168,0,0};
+        int[] endOctet = {192,168, 8, 15};
 
-        System.out.print("Numbers of Threads: ");
-        int threadCount = Integer.parseInt(new Scanner(System.in).nextLine());
+        main.walkIpRange(startOctet, endOctet);
 
-        int rangeSize = 256 / threadCount;
+    }
 
-        Thread[] t = new Thread[threadCount];
-        myThread[] tasks = new myThread[threadCount];
+    public void walkIpRange(int[] startOctet, int[] endOctet) throws IOException {
 
-        int i = 0;
-        while( i < threadCount ) {
-            int[] start = {i * rangeSize, 0, 0, 0};
-            int[] end = {((i + 1) * rangeSize) - 1, 255, 255, 255};
+        for(int i = startOctet[0]; i <= 255; i++) {
 
-            tasks[i] = new myThread(start, end);
-
-            t[i] = new Thread(tasks[i]);
-            t[i].start();
-            i++;
-        }
-
-        for(Thread thread : t) {
-            thread.join();
-        }
-
-        for(myThread task : tasks) {
-            for(String host : task.reachableHosts) {
-                System.out.println(host);
+            if(i == endOctet[0] + 1) {
+                break;
             }
-        }
 
-    }
+            for(int j = startOctet[1]; j <= 255; j++) {
 
-}
-class myThread implements Runnable{
+                if(j == endOctet[1] + 1 && i == endOctet[0]) {
+                    break;
+                }
 
-    int[] start;
-    int[] end;
+                for(int k = startOctet[2]; k <= 255; k++) {
 
-    ArrayList<String> reachableHosts = new ArrayList<>();
+                    if(k == endOctet[2] + 1 && j == endOctet[1]) {
+                        break;
+                    }
 
-    public myThread(int[] start, int[] end) {
-        this.start = start;
-        this.end = end;
-    }
+                    for(int l = startOctet[3]; l <= 255; l++) {
 
-    @Override
-    public void run() {
+                        if(l == endOctet[3] + 1 && k == endOctet[2]) {
+                            break;
+                        }
 
-        for(int i = start[3]; i <= end[3]; i++) {
-            for(int j = start[2]; j <= end[2]; j++) {
-                for(int k = start[1]; k <= end[1]; k++) {
-                    for(int l = start[0]; l <= end[0]; l++) {
-                        String address = i + "." + j + "." + k + "." + l;
-                        try {
-                            sendPingRequest(address);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                        String address = String.format("%d.%d.%d.%d", i, j, k, l);
+                        InetAddress inetAddress = InetAddress.getByName(address);
+                        System.out.printf("%s reachable: %s\n", address, inetAddress.isReachable(5));
+
+                        if(l == 1 && !inetAddress.isReachable(5)) {
+                            break;
                         }
                     }
                 }
             }
         }
-        System.out.println("FINISHED");
 
     }
-
-    public void sendPingRequest(String ipAddress)
-            throws UnknownHostException, IOException
-    {
-        InetAddress geek = InetAddress.getByName(ipAddress);
-//        System.out.println("Sending Ping Request to " + ipAddress);
-        if (geek.isReachable(2000)) {
-            reachableHosts.add(ipAddress);
-            System.out.println("Host is reachable");
-        }
-    }
-
 }
